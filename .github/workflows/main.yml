@@ -27,24 +27,25 @@ jobs:
 
     - name: Unzip and Move Files
       run: |
-        unzip -o Seep_2_4_Player_App.zip
-        # अगर अनज़िप होने पर कोई सब-फ़ोल्डर बना है, तो फ़ाइलों को बाहर निकालें
-        PROJECT_DIR=$(find . -maxdepth 2 -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1 | xargs dirname)
-        echo "Found project at: $PROJECT_DIR"
-        echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+        unzip -o Seep_2_4_Player_App.zip -d temp_unzip
+        # अगर अंदर कोई सब-फ़ोल्डर है तो उसकी सारी फ़ाइलें बाहर निकालें
+        if [ -d temp_unzip/* ]; then
+          cp -r temp_unzip/*/* . 2>/dev/null || cp -r temp_unzip/* .
+        else
+          cp -r temp_unzip/* .
+        fi
+        rm -rf temp_unzip
 
     - name: Grant execute permission for gradlew
       run: |
-        cd "$PROJECT_DIR"
         if [ -f gradlew ]; then chmod +x gradlew; fi
 
     - name: Build APK
       run: |
-        cd "$PROJECT_DIR"
         if [ -f gradlew ]; then
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
         else
-          gradle assembleDebug --stacktrace
+          gradle assembleDebug
         fi
 
     - name: Upload APK
