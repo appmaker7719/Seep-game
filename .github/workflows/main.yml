@@ -25,6 +25,63 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    - name: Extract and Move Project Files
+      run: |
+        mkdir extracted
+        unzip -q -o Seep_2_4_Player_App.zip -d extracted
+        
+        # प्रोजेक्ट की मुख्य डायरेक्टरी ढूँढकर सभी फ़ाइलों को बाहर निकालें
+        PROJECT_ROOT=$(find extracted -name "build.gradle" -o -name "build.gradle.kts" | head -n 1 | xargs dirname)
+        if [ -n "$PROJECT_ROOT" ]; then
+          cp -rn "$PROJECT_ROOT"/* . 2>/dev/null || cp -r "$PROJECT_ROOT"/* .
+        else
+          cp -rn extracted/* . 2>/dev/null || cp -r extracted/* .
+        fi
+        rm -rf extracted
+
+    - name: Grant execute permission for gradlew
+      run: |
+        if [ -f gradlew ]; then chmod +x gradlew; fi
+
+    - name: Build APK
+      run: |
+        if [ -f gradlew ]; then
+          ./gradlew assembleDebug --no-daemon
+        else
+          gradle assembleDebug --no-daemon
+        fi
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: seep-game-apk
+        path: "**/build/outputs/apk/debug/*.apk"name: Build Seep APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
     - name: Unzip and Move Files
       run: |
         unzip -o Seep_2_4_Player_App.zip -d temp_unzip
