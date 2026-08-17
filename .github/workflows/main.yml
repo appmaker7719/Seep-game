@@ -19,26 +19,32 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Unzip project files
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Unzip and Move Files
       run: |
         unzip -o Seep_2_4_Player_App.zip
+        # अगर अनज़िप होने पर कोई सब-फ़ोल्डर बना है, तो फ़ाइलों को बाहर निकालें
+        PROJECT_DIR=$(find . -maxdepth 2 -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1 | xargs dirname)
+        echo "Found project at: $PROJECT_DIR"
+        echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
 
     - name: Grant execute permission for gradlew
       run: |
+        cd "$PROJECT_DIR"
         if [ -f gradlew ]; then chmod +x gradlew; fi
-        if [ -d */gradlew ]; then chmod +x */gradlew; fi
 
     - name: Build APK
       run: |
+        cd "$PROJECT_DIR"
         if [ -f gradlew ]; then
-          ./gradlew assembleDebug
-        elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
-          gradle assembleDebug
+          ./gradlew assembleDebug --stacktrace
         else
-          # अगर ज़िप फ़ोल्डर के अंदर फ़ाइलें हैं
-          SUBDIR=$(find . -maxdepth 2 -name "build.gradle" -o -name "build.gradle.kts" | head -n 1 | xargs dirname)
-          cd "$SUBDIR"
-          if [ -f gradlew ]; then chmod +x gradlew && ./gradlew assembleDebug; else gradle assembleDebug; fi
+          gradle assembleDebug --stacktrace
         fi
 
     - name: Upload APK
